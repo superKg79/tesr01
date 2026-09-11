@@ -4,7 +4,9 @@
 
 ## 配置
 
-在 Vercel 项目的 **Settings → Environment Variables** 中添加：
+生产部署优先通过 **Vercel AI Gateway** 调用 DeepSeek V4 Flash，以获得更稳定的路由与调用日志。首次使用时，在 Vercel 项目的 **Settings → AI Gateway** 中点击启用；Vercel 会为函数自动注入安全的 OIDC 身份令牌，不需要在前端保存任何 Key。
+
+`AI_API_KEY` 等环境变量仍可保留，作为网关不可用时的直连备用配置：
 
 - `AI_API_KEY`：DeepSeek API Key
 - `AI_BASE_URL`：`https://api.deepseek.com`（也兼容带 `/v1` 的地址；不要填完整的 `/chat/completions` 路径）

@@ -19,9 +19,19 @@ function clampScore(value) {
 }
 
 function getProviderConfig() {
-  const apiKey = String(process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+  const directApiKey = String(process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+  const gatewayApiKey = String(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || '').trim();
   const baseUrl = String(process.env.AI_BASE_URL || 'https://api.openai.com/v1').trim().replace(/\/+$/, '');
   const model = String(process.env.AI_MODEL || 'gpt-4o-mini').trim();
+  if (gatewayApiKey) {
+    const gatewayModel = model.includes('/') ? model : `deepseek/${model}`;
+    return {
+      apiKey: gatewayApiKey,
+      endpoint: 'https://ai-gateway.vercel.sh/v1/chat/completions',
+      model: gatewayModel,
+      provider: 'vercel-ai-gateway'
+    };
+  }
   let endpoint;
   try {
     const url = new URL(baseUrl);
@@ -30,7 +40,7 @@ function getProviderConfig() {
   } catch {
     throw new Error('AI_BASE_URL 必须是以 https:// 开头的 API 基地址。');
   }
-  return { apiKey, baseUrl, endpoint, model };
+  return { apiKey: directApiKey, endpoint, model, provider: 'direct' };
 }
 
 function postJsonWithHttps(endpoint, headers, payload) {
@@ -89,7 +99,7 @@ module.exports = async (req, res) => {
   } catch (error) {
     return send(res, 503, { error: error.message });
   }
-  const { apiKey, endpoint, model } = config;
+  const { apiKey, endpoint, model, provider: providerName } = config;
   if (!apiKey) return send(res, 503, { error: 'AI 服务尚未配置。请在 Vercel Environment Variables 中设置 AI_API_KEY。' });
 
   const focus = { both: '完整诊断、评分和润色', score: '以岗位匹配和竞争力评分为主，同时给出必要建议', polish: '以经历表达润色和关键词优化为主，同时给出必要评分' }[mode] || '完整诊断、评分和润色';
@@ -112,13 +122,17 @@ module.exports = async (req, res) => {
       provider = await postJsonWithHttps(endpoint, headers, payload);
     }
     if (!provider.ok) {
-      console.error('AI provider error', provider.status, provider.data?.error?.message);
-      return send(res, 502, { error: 'AI 服务暂时无法响应，请稍后重试。' });
+      const providerMessage = String(provider.data?.error?.message || provider.data?.message || '').slice(0, 240);
+      console.error('AI provider error', provider.status, providerMessage);
+      if (providerName === 'vercel-ai-gateway' && (provider.status === 401 || provider.status === 403)) {
+        return send(res, 503, { error: 'Vercel AI Gateway 尚未启用。请在项目 Settings → AI Gateway 中启用后重试。', diagnostic: `GATEWAY_${provider.status}` });
+      }
+      return send(res, 502, { error: providerMessage ? `AI 服务返回错误：${providerMessage}` : 'AI 服务暂时无法响应，请稍后重试。', diagnostic: `HTTP_${provider.status}` });
     }
     return send(res, 200, normaliseReport(extractJson(provider.data?.choices?.[0]?.message?.content)));
   } catch (error) {
     const code = error?.cause?.code || error?.code || error?.name || 'UNKNOWN';
-    console.error('AI request failed', { endpoint, model, code, message: error?.message });
+    console.error('AI request failed', { endpoint, model, provider: providerName, code, message: error?.message });
     return send(res, 502, {
       error: '无法连接到 AI 服务。已清理变量中的首尾空格；请确认 AI_BASE_URL 为 https://api.deepseek.com，且变量已同时勾选 Production 与 Preview。',
       diagnostic: code
