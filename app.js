@@ -10,6 +10,47 @@ const errorMessage = document.querySelector('#errorMessage');
 const subtitle = document.querySelector('#resultSubtitle');
 const state = document.querySelector('#resultState');
 
+const modePresentation = {
+  both: {
+    button: '生成综合优化报告',
+    loading: '模型正在进行岗位匹配、竞争力与表达质量的综合诊断',
+    scores: ['岗位匹配度', '简历竞争力', '表达清晰度'],
+    summary: '综合结论', strengths: '优势信号', risks: '优先改进',
+    rewrite: '建议替换的经历表述', actions: '下一步行动'
+  },
+  score: {
+    button: '生成竞争力评估',
+    loading: '模型正在以招聘筛选视角评估岗位竞争力与淘汰风险',
+    scores: ['岗位匹配度', '竞争力评分', '筛选通过度'],
+    summary: '竞争力结论', strengths: '匹配证据', risks: '筛选风险',
+    rewrite: '招聘视角判定', actions: '提升优先级'
+  },
+  polish: {
+    button: '生成简历润色方案',
+    loading: '模型正在提炼成果、关键词并生成可直接使用的简历表达',
+    scores: ['关键词匹配', '成果表达', '语言清晰度'],
+    summary: '表达诊断', strengths: '建议保留', risks: '需要重写',
+    rewrite: '可直接替换的润色版本', actions: '润色执行清单'
+  }
+};
+
+function getSelectedMode() {
+  return new FormData(form).get('mode') || 'both';
+}
+
+function applyModePresentation(mode) {
+  const labels = modePresentation[mode] || modePresentation.both;
+  document.querySelector('#matchLabel').textContent = labels.scores[0];
+  document.querySelector('#resumeLabel').textContent = labels.scores[1];
+  document.querySelector('#clarityLabel').textContent = labels.scores[2];
+  document.querySelector('#summaryLabel').textContent = labels.summary;
+  document.querySelector('#strengthsLabel').textContent = labels.strengths;
+  document.querySelector('#risksLabel').textContent = labels.risks;
+  document.querySelector('#rewriteLabel').textContent = labels.rewrite;
+  document.querySelector('#actionsLabel').textContent = labels.actions;
+  button.querySelector('span').textContent = labels.button;
+}
+
 async function getAnalysisEndpoint() {
   try {
     const response = await fetch('/api/public-config', { cache: 'no-store' });
@@ -89,7 +130,8 @@ function listInto(id, values) {
   });
 }
 
-function renderReport(data) {
+function renderReport(data, mode) {
+  applyModePresentation(mode);
   document.querySelector('#matchScore').textContent = data.scores?.match ?? '--';
   document.querySelector('#resumeScore').textContent = data.scores?.competitiveness ?? '--';
   document.querySelector('#clarityScore').textContent = data.scores?.clarity ?? '--';
@@ -98,7 +140,7 @@ function renderReport(data) {
   listInto('#strengths', data.strengths);
   listInto('#risks', data.risks);
   listInto('#actions', data.nextActions);
-  subtitle.textContent = `已根据「${document.querySelector('#targetRole').value.trim()}」生成`;
+  subtitle.textContent = `已根据「${document.querySelector('#targetRole').value.trim()}」生成${modePresentation[mode]?.summary || '综合结论'}`;
   state.textContent = 'COMPLETE';
   setView(report);
 }
@@ -106,15 +148,16 @@ function renderReport(data) {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!form.reportValidity()) return;
+  const mode = getSelectedMode();
   const payload = {
     targetRole: document.querySelector('#targetRole').value.trim(),
     jobDescription: document.querySelector('#jobDescription').value.trim(),
     resume: resume.value.trim(),
-    mode: new FormData(form).get('mode')
+    mode
   };
   button.disabled = true;
   button.querySelector('span').textContent = 'AI 正在分析…';
-  subtitle.textContent = '模型正在阅读岗位与简历信息';
+  subtitle.textContent = modePresentation[mode]?.loading || modePresentation.both.loading;
   state.textContent = 'PROCESSING';
   setView(loading);
   try {
@@ -126,7 +169,7 @@ form.addEventListener('submit', async (event) => {
       error.diagnostic = result.diagnostic;
       throw error;
     }
-    renderReport(result);
+    renderReport(result, mode);
   } catch (error) {
     const diagnostic = error.diagnostic ? `（连接代码：${error.diagnostic}）` : '';
     errorMessage.textContent = `${error.message || '网络连接异常，请检查后重试。'}${diagnostic}`;
@@ -135,6 +178,11 @@ form.addEventListener('submit', async (event) => {
     setView(errorState);
   } finally {
     button.disabled = false;
-    button.querySelector('span').textContent = '生成 AI 优化报告';
+    button.querySelector('span').textContent = (modePresentation[mode] || modePresentation.both).button;
   }
 });
+
+document.querySelectorAll('input[name="mode"]').forEach((input) => {
+  input.addEventListener('change', () => applyModePresentation(getSelectedMode()));
+});
+applyModePresentation(getSelectedMode());

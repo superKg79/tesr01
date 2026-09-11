@@ -1,6 +1,6 @@
 # DeepSeek 阿里云函数计算代理
 
-创建 Node.js 20 函数，处理程序填写 `index.handler`。创建 HTTP 触发器时允许 `POST, OPTIONS`，认证方式选“无需认证”。
+创建 Node.js 20 函数，处理程序填写 `index.handler`。控制台默认文件为 `index.mjs`，可直接将本目录的 `index.js` 全文复制进去。创建 HTTP 触发器时允许 `POST, OPTIONS`，认证方式选“无需认证”。
 
 函数环境变量：
 
