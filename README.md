@@ -6,9 +6,11 @@
 
 在 Vercel 项目的 **Settings → Environment Variables** 中添加：
 
-- `AI_API_KEY`：模型服务商 API Key
-- `AI_BASE_URL`：API 基地址，默认 `https://api.openai.com/v1`
-- `AI_MODEL`：模型名称，默认 `gpt-4o-mini`
+- `AI_API_KEY`：DeepSeek API Key
+- `AI_BASE_URL`：`https://api.deepseek.com`（也兼容带 `/v1` 的地址；不要填完整的 `/chat/completions` 路径）
+- `AI_MODEL`：`deepseek-v4-flash`
+
+三个变量都必须同时勾选 **Production** 与 **Preview**。修改环境变量后，需要触发一次新的部署才会生效。变量只在服务端读取，不会发送到浏览器。
 
 不要把真实 Key 放入 `.env.example`、前端代码或 Git 仓库。
 
