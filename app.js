@@ -110,10 +110,15 @@ form.addEventListener('submit', async (event) => {
   try {
     const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || '服务暂时不可用，请稍后再试。');
+    if (!response.ok) {
+      const error = new Error(result.error || '服务暂时不可用，请稍后再试。');
+      error.diagnostic = result.diagnostic;
+      throw error;
+    }
     renderReport(result);
   } catch (error) {
-    errorMessage.textContent = error.message || '网络连接异常，请检查后重试。';
+    const diagnostic = error.diagnostic ? `（连接代码：${error.diagnostic}）` : '';
+    errorMessage.textContent = `${error.message || '网络连接异常，请检查后重试。'}${diagnostic}`;
     subtitle.textContent = '本次请求未完成';
     state.textContent = 'ERROR';
     setView(errorState);
