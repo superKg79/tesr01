@@ -10,6 +10,16 @@ const errorMessage = document.querySelector('#errorMessage');
 const subtitle = document.querySelector('#resultSubtitle');
 const state = document.querySelector('#resultState');
 
+async function getAnalysisEndpoint() {
+  try {
+    const response = await fetch('/api/public-config', { cache: 'no-store' });
+    const config = await response.json();
+    return typeof config.analysisUrl === 'string' && config.analysisUrl.startsWith('https://') ? config.analysisUrl : '/api/analyze';
+  } catch {
+    return '/api/analyze';
+  }
+}
+
 resume.addEventListener('input', () => { count.textContent = resume.value.length.toLocaleString('zh-CN'); });
 document.querySelector('#retryButton').addEventListener('click', () => form.requestSubmit());
 
@@ -108,7 +118,8 @@ form.addEventListener('submit', async (event) => {
   state.textContent = 'PROCESSING';
   setView(loading);
   try {
-    const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const endpoint = await getAnalysisEndpoint();
+    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(result.error || '服务暂时不可用，请稍后再试。');

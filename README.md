@@ -2,6 +2,8 @@
 
 面向校招生的岗位匹配、简历诊断与表达优化工具。前端为静态页面，`/api/analyze` 是 Vercel Serverless Function，使用 OpenAI 兼容的 Chat Completions API。
 
+如需继续使用 DeepSeek 但绕开 Vercel 到 DeepSeek 的连接问题，可将 `aliyun-function/index.js` 部署到阿里云函数计算，再把 HTTP 触发器地址设置为 Vercel 环境变量 `AI_ANALYSIS_URL`。详细步骤见 [aliyun-function/README.md](aliyun-function/README.md)。
+
 ## 配置
 
 默认可通过 **Vercel AI Gateway** 调用 DeepSeek V4 Flash。若不想为 AI Gateway 绑定支付方式，可以改用阿里云百炼直连：在 Vercel 的环境变量中设置 `AI_PROVIDER=aliyun`，后端会绕过 AI Gateway，直接调用通义千问。
