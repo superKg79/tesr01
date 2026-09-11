@@ -4,13 +4,14 @@
 
 ## 配置
 
-生产部署优先通过 **Vercel AI Gateway** 调用 DeepSeek V4 Flash，以获得更稳定的路由与调用日志。首次使用时，在 Vercel 项目的 **Settings → AI Gateway** 中点击启用；Vercel 会为函数自动注入安全的 OIDC 身份令牌，不需要在前端保存任何 Key。
+默认可通过 **Vercel AI Gateway** 调用 DeepSeek V4 Flash。若不想为 AI Gateway 绑定支付方式，可以改用阿里云百炼直连：在 Vercel 的环境变量中设置 `AI_PROVIDER=aliyun`，后端会绕过 AI Gateway，直接调用通义千问。
 
-`AI_API_KEY` 等环境变量仍可保留，作为网关不可用时的直连备用配置：
+阿里云百炼配置如下（均选择 Production 与 Preview）：
 
-- `AI_API_KEY`：DeepSeek API Key
-- `AI_BASE_URL`：`https://api.deepseek.com`（也兼容带 `/v1` 的地址；不要填完整的 `/chat/completions` 路径）
-- `AI_MODEL`：`deepseek-v4-flash`
+- `AI_PROVIDER`：`aliyun`
+- `AI_API_KEY`：阿里云百炼 API Key
+- `AI_BASE_URL`：`https://dashscope.aliyuncs.com/compatible-mode/v1`，或百炼控制台显示的业务空间专属 API Host
+- `AI_MODEL`：`qwen-plus`
 
 三个变量都必须同时勾选 **Production** 与 **Preview**。修改环境变量后，需要触发一次新的部署才会生效。变量只在服务端读取，不会发送到浏览器。
 

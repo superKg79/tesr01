@@ -19,11 +19,12 @@ function clampScore(value) {
 }
 
 function getProviderConfig() {
+  const selectedProvider = String(process.env.AI_PROVIDER || '').trim().toLowerCase();
   const directApiKey = String(process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
   const gatewayApiKey = String(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || '').trim();
   const baseUrl = String(process.env.AI_BASE_URL || 'https://api.openai.com/v1').trim().replace(/\/+$/, '');
   const model = String(process.env.AI_MODEL || 'gpt-4o-mini').trim();
-  if (gatewayApiKey) {
+  if (gatewayApiKey && selectedProvider !== 'aliyun') {
     const gatewayModel = model.includes('/') ? model : `deepseek/${model}`;
     return {
       apiKey: gatewayApiKey,
@@ -40,7 +41,7 @@ function getProviderConfig() {
   } catch {
     throw new Error('AI_BASE_URL 必须是以 https:// 开头的 API 基地址。');
   }
-  return { apiKey: directApiKey, endpoint, model, provider: 'direct' };
+  return { apiKey: directApiKey, endpoint, model, provider: selectedProvider || 'direct' };
 }
 
 function postJsonWithHttps(endpoint, headers, payload) {
